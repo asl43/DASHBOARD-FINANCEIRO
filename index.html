@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard Financeiro Externo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+  
   <style>
     /* --- CSS MELHORADO --- */
     :root {
@@ -14,6 +16,7 @@
       --card-bg: #fff;
       --hover-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
       --transition-speed: 0.3s;
+      --chart-bg: #f5f5f5; /* Novo */
     }
     
     * {
@@ -163,6 +166,28 @@
     
     tbody tr:nth-child(even) {
       background-color: #fafafa;
+    }
+
+    /* Rodapé da Tabela */
+    tfoot td {
+        background-color: #e9ecef;
+        font-weight: bold;
+        border-top: 2px solid #667eea;
+    }
+    
+    /* Formatação Condicional para Rentabilidade */
+    .rentabilidade-positiva {
+      color: var(--success-color);
+      font-weight: bold;
+    }
+
+    .rentabilidade-negativa {
+      color: var(--danger-color);
+      font-weight: bold;
+    }
+
+    .rentabilidade-zero {
+        color: #6c757d;
     }
     
     /* Formulário Melhorado */
@@ -347,7 +372,30 @@
       font-weight: bold;
       color: #333;
     }
-    
+
+    /* Gráficos - Novo Layout */
+    .chart-container-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-top: 30px;
+        padding: 20px;
+        background-color: var(--chart-bg);
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .chart-card {
+        padding: 15px;
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
     /* Botões de ação */
     .action-buttons {
       display: flex;
@@ -390,7 +438,7 @@
         font-size: 1.5em;
       }
       
-      .summary-card {
+      .summary-card, .chart-container-row {
         grid-template-columns: 1fr;
       }
       
@@ -473,6 +521,22 @@
         <div id="totalAtivos" class="stat-value">0</div>
       </div>
     </div>
+
+    <h2>📈 Análise de Portfólio</h2>
+    <div class="chart-container-row">
+        <div class="chart-card">
+            <h3>Distribuição por Patrimônio</h3>
+            <div style="max-width: 400px; width: 100%;">
+                <canvas id="patrimonioChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Distribuição por Renda Mensal</h3>
+            <div style="max-width: 400px; width: 100%;">
+                <canvas id="rendaChart"></canvas>
+            </div>
+        </div>
+    </div>
     
     <div class="form-container">
       <h2>➕ Adicionar Novo Registro</h2>
@@ -532,19 +596,23 @@
   </div>
 
   <script>
-    // --- JAVASCRIPT PARA COMUNICAÇÃO EXTERNA ---
+    // ** MUDE A URL AQUI PARA A SUA URL DE EXECUÇÃO **
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw51P93hfQNuD4nBqWhPX5ORHbSbrdeI4LuYjNCLP7lMq8U_TV5wNOUi3bWhc_LSoFz1A/exec';
     
-    // ** IMPORTANTE: MUDE A URL AQUI PARA A SUA URL DE EXECUÇÃO RECENTEMENTE ATUALIZADA **
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxSvhTjoYoVlNRTSimodbdpY70FIQz0Jow6TDCf5N9_z0KoJW8vRGcgzOz-JVttRtZuwg/exec';
-    
-    // Estado da aplicação (O resto do código mantém a mesma estrutura)
     let currentData = {
       investments: [],
       headers: [],
       summary: {}
     };
+
+    let patrimonioChartInstance = null;
+    let rendaChartInstance = null;
+
+    const COLORS = [
+        '#667eea', '#764ba2', '#007bff', '#28a745', '#ffc107', '#dc3545', 
+        '#20c997', '#fd7e14', '#e83e8c', '#6f42c1', '#17a2b8', '#00bcd4'
+    ];
     
-    // Inicialização
     document.addEventListener('DOMContentLoaded', function() {
       loadInitialData();
       setupEventListeners();
@@ -553,34 +621,26 @@
     function setupEventListeners() {
       document.getElementById('investmentForm').addEventListener('submit', handleFormSubmit);
       
-      // Auto-formatação de inputs numéricos
       const numberInputs = document.querySelectorAll('input[type="number"]');
       numberInputs.forEach(input => {
         input.addEventListener('blur', function() {
           if (this.value) {
-            // Garante 2 casas decimais e substitui vírgula por ponto (padrão)
-            let formattedValue = parseFloat(this.value).toFixed(2);
-            this.value = formattedValue;
+            this.value = parseFloat(this.value).toFixed(2);
           }
         });
       });
     }
-    
-    // -------------------------------------------------------------
-    // FUNÇÃO PRINCIPAL DE COMUNICAÇÃO COM O APPS SCRIPT (API)
-    // -------------------------------------------------------------
 
-    /**
-     * Envia requisição POST para o Apps Script com a ação e o payload.
-     */
+    // -------------------------------------------------------------
+    // COMUNICAÇÃO COM APPS SCRIPT
+    // -------------------------------------------------------------
     async function callAppsScript(action, payload = {}) {
         try {
             const response = await fetch(WEB_APP_URL, {
                 method: 'POST',
-                mode: 'cors', 
+                mode: 'cors',
                 headers: {
-                    // O Apps Script espera 'text/plain' para requisições POST externas
-                    'Content-Type': 'text/plain;charset=utf-8' 
+                    'Content-Type': 'text/plain;charset=utf-8'
                 },
                 body: JSON.stringify({
                     action: action,
@@ -588,27 +648,20 @@
                 })
             });
 
-            // Se o status da resposta for OK (200), lemos o conteúdo JSON
             if (response.ok) {
               const text = await response.text();
               return JSON.parse(text);
             } else {
-              // Lidar com erros HTTP (404, 500, etc.)
               const errorText = await response.text();
               throw new Error(`Erro HTTP ${response.status}: ${errorText.substring(0, 100)}`);
             }
 
         } catch (error) {
             console.error("Erro na comunicação com Apps Script:", error);
-            // Rejeita a promessa para ser capturada pelo .catch() do loadInitialData
             throw new Error("Falha na comunicação: " + error.message);
         }
     }
 
-
-    // -------------------------------------------------------------
-    // FUNÇÕES DE CARREGAMENTO E ATUALIZAÇÃO
-    // -------------------------------------------------------------
 
     function loadInitialData() {
         callAppsScript('GET_DATA')
@@ -632,7 +685,7 @@
     }
     
     // -------------------------------------------------------------
-    // FORMATAÇÃO E CÁLCULOS (Manter as funções originais)
+    // FORMATAÇÃO E CÁLCULOS
     // -------------------------------------------------------------
     
     function formatCurrency(value) {
@@ -649,11 +702,13 @@
     
     function formatPercentage(value) {
       if (value === null || value === undefined || isNaN(value)) {
-        return '0%';
+        return '<span class="rentabilidade-zero">0.00%</span>';
       }
-      // Garante que o valor exibido na rentabilidade use a cor correta
-      const color = Number(value) >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
-      return `<span style="color: ${color};">${Number(value).toFixed(2)}%</span>`;
+
+      const numValue = Number(value);
+      const colorClass = numValue > 0 ? 'rentabilidade-positiva' : numValue < 0 ? 'rentabilidade-negativa' : 'rentabilidade-zero';
+      
+      return `<span class="${colorClass}">${numValue.toFixed(2)}%</span>`;
     }
     
     function calculateSummary(data) {
@@ -694,7 +749,6 @@
     // -------------------------------------------------------------
     
     function displayData(response) {
-      // Se a resposta vier com sucesso: false, trata como erro
       if (!response.success) {
         displayError({ message: response.message || "Erro desconhecido ao carregar dados." });
         return;
@@ -702,11 +756,18 @@
       
       currentData.investments = response.data;
       currentData.headers = response.headers;
+
+      // Adiciona o cabeçalho "Rentabilidade do Ativo" se ainda não existir
+      if (!currentData.headers.includes('Rentabilidade do Ativo')) {
+          currentData.headers.push('Rentabilidade do Ativo');
+      }
+
       currentData.summary = calculateSummary(response.data);
       
       updateSummaryCards();
       updateStatsRow();
       renderTable();
+      renderCharts(); // Novo: Renderiza os gráficos
     }
     
     function updateSummaryCards() {
@@ -720,8 +781,9 @@
     function updateStatsRow() {
       const summary = currentData.summary;
       
+      // Remove a tag <span>, mantendo apenas a formatação de cor
       document.getElementById('rentabilidadeTotal').innerHTML = formatPercentage(summary.rentabilidade);
-      document.getElementById('yieldMedio').textContent = formatPercentage(summary.yieldMedio).replace(/<[^>]*>?/gm, ''); // Remove span de cor, mantendo só o texto
+      document.getElementById('yieldMedio').textContent = formatPercentage(summary.yieldMedio).replace(/<[^>]*>?/gm, '');
       document.getElementById('totalAtivos').textContent = summary.totalAtivos;
     }
     
@@ -729,17 +791,21 @@
       const contentDiv = document.getElementById('content');
       const data = currentData.investments;
       const headers = currentData.headers;
-      
+      const summary = currentData.summary;
+
+      // Filtra o cabeçalho 'Rentabilidade do Ativo' para que ele seja a última coluna (ou onde você o quer)
+      const displayHeaders = headers.filter(h => h !== 'Rentabilidade do Ativo').concat(['Rentabilidade do Ativo']);
+
       if (data.length === 0) {
         contentDiv.innerHTML = `
           <div class="table-container">
             <table>
               <thead>
-                <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+                <tr>${displayHeaders.map(h => `<th>${h}</th>`).join('')}</tr>
               </thead>
               <tbody>
                 <tr>
-                  <td colspan="${headers.length}" style="text-align:center; padding: 40px;">
+                  <td colspan="${displayHeaders.length}" style="text-align:center; padding: 40px;">
                     📊 Nenhum registro de investimento encontrado. Adicione seu primeiro registro acima!
                   </td>
                 </tr>
@@ -754,16 +820,30 @@
         <div class="table-container">
           <table>
             <thead>
-              <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+              <tr>${displayHeaders.map(h => `<th>${h}</th>`).join('')}</tr>
             </thead>
             <tbody>
       `;
       
       data.forEach(item => {
+        const invested = Number(item['Valor Investido']) || 0;
+        const currentValue = Number(item['Valor Atual']) || invested;
+        
+        let rentabilidadeAtivo = invested > 0 
+          ? ((currentValue - invested) / invested) * 100 
+          : 0;
+
         htmlTable += '<tr>';
-        headers.forEach(header => {
+        displayHeaders.forEach(header => {
           let value = item[header];
           
+          if (header === 'Rentabilidade do Ativo') {
+            // Usa a rentabilidade calculada e formatada
+            value = formatPercentage(rentabilidadeAtivo);
+            htmlTable += `<td>${value}</td>`;
+            return; 
+          }
+
           if (header.includes('Valor') || header.includes('Renda') || header.includes('Preço')) {
             value = formatCurrency(value);
           }
@@ -772,8 +852,20 @@
         });
         htmlTable += '</tr>';
       });
-      
-      htmlTable += '</tbody></table></div>';
+
+      // Rodapé da Tabela (Totais)
+      htmlTable += `
+        </tbody>
+        <tfoot>
+            <tr>
+                <td>Totais</td>
+                <td>${formatCurrency(summary.totalInvestido)}</td>
+                <td>${formatCurrency(summary.rendaMensal)}</td>
+                <td>${formatCurrency(summary.patrimonio)}</td>
+                <td colspan="${displayHeaders.length - 4}"></td>
+            </tr>
+        </tfoot>
+        </table></div>`;
       contentDiv.innerHTML = htmlTable;
     }
     
@@ -789,6 +881,109 @@
       document.getElementById('rendaMensal').textContent = 'R$ 0,00';
       document.getElementById('patrimonio').textContent = 'R$ 0,00';
     }
+
+    // -------------------------------------------------------------
+    // GRÁFICOS (CHART.JS) - NOVO
+    // -------------------------------------------------------------
+
+    function prepareChartData() {
+        const data = currentData.investments;
+        const totalPatrimonio = currentData.summary.patrimonio;
+        const totalRenda = currentData.summary.rendaMensal;
+
+        // Mapeia os dados para ter o ativo, valorAtual e renda mensal
+        const mappedData = data.map(item => ({
+            ativo: item['Ativo'],
+            valor: Number(item['Valor Atual']) || 0,
+            renda: Number(item['Renda Recorrente Mensal']) || 0
+        })).filter(item => item.valor > 0 || item.renda > 0); // Filtra itens sem valor
+
+        const labels = mappedData.map(item => item.ativo);
+        const patrimonioData = mappedData.map(item => item.valor);
+        const rendaData = mappedData.map(item => item.renda);
+
+        return { labels, patrimonioData, rendaData };
+    }
+
+    function renderCharts() {
+        const { labels, patrimonioData, rendaData } = prepareChartData();
+
+        // 1. Gráfico de Patrimônio
+        const ctxPatrimonio = document.getElementById('patrimonioChart').getContext('2d');
+        if (patrimonioChartInstance) { patrimonioChartInstance.destroy(); }
+        
+        patrimonioChartInstance = new Chart(ctxPatrimonio, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: patrimonioData,
+                    backgroundColor: COLORS.slice(0, labels.length),
+                    hoverOffset: 10,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += formatCurrency(context.parsed);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Gráfico de Renda Mensal
+        const ctxRenda = document.getElementById('rendaChart').getContext('2d');
+        if (rendaChartInstance) { rendaChartInstance.destroy(); }
+        
+        rendaChartInstance = new Chart(ctxRenda, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: rendaData,
+                    backgroundColor: COLORS.slice(0, labels.length),
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                     tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += formatCurrency(context.parsed);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
     
     // -------------------------------------------------------------
     // FORMULÁRIO DE ESCRITA
@@ -802,10 +997,8 @@
       
       Array.from(form.elements).forEach(element => {
         if (element.name) {
-          // Usa o valor limpo
           let value = element.value;
           
-          // Se for campo numérico, remove formatação de milhar e usa ponto decimal
           if (element.type === 'number') {
             value = value.replace(/\./g, '').replace(',', '.');
           }
@@ -825,7 +1018,6 @@
       messageDiv.className = 'message-loading';
       messageDiv.textContent = '⏳ Adicionando registro na planilha...';
       
-      // CHAMA O APPS SCRIPT COM AÇÃO 'ADD_RECORD'
       const response = await callAppsScript('ADD_RECORD', formData);
 
       submitButton.disabled = false;
@@ -833,9 +1025,8 @@
       if (response.success) {
         messageDiv.className = 'message-success';
         messageDiv.textContent = '✅ ' + response.message;
-        form.reset();
+        form.reset(); // LIMPA O FORMULÁRIO
         
-        // Recarrega os dados após sucesso
         setTimeout(() => {
           loadInitialData();
         }, 500);
@@ -861,6 +1052,6 @@
       
       return true;
     }
-</script>
+  </script>
 </body>
 </html>

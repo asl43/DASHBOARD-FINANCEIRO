@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Financeiro Externo</title>
+  <style>
+    /* --- CSS MELHORADO --- */
+    :root {
+      --primary-color: #007bff;
+      --success-color: #28a745;
+      --danger-color: #dc3545;
+      --warning-color: #ffc107;
+      --light-bg: #f4f7f6;
+      --card-bg: #fff;
+      --hover-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      --transition-speed: 0.3s;
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: var(--card-bg);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+    
+    h1 {
+      color: var(--primary-color);
+      border-bottom: 3px solid var(--primary-color);
+      padding-bottom: 10px;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 2em;
+    }
+    
+    h2 {
+      color: #555;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    /* Cards de Resumo */
+    .summary-card {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 25px;
+      border-radius: 10px;
+      text-align: center;
+      transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(-100%);
+      transition: transform var(--transition-speed);
+    }
+    
+    .card:hover::before {
+      transform: translateX(0);
+    }
+    
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--hover-shadow);
+    }
+    
+    .card-icon {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      opacity: 0.9;
+    }
+    
+    .card-title {
+      font-size: 0.95em;
+      margin-bottom: 10px;
+      opacity: 0.95;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .card-value {
+      font-size: 1.8em;
+      font-weight: bold;
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* Tabela Melhorada */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    
+    th, td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-transform: uppercase;
+      font-size: 0.85em;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    tbody tr {
+      transition: background-color 0.2s;
+    }
+    
+    tbody tr:hover {
+      background-color: #f8f9ff;
+    }
+    
+    tbody tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+    
+    /* Formulário Melhorado */
+    .form-container {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-top: 30px;
+      border-left: 5px solid var(--success-color);
+    }
+    
+    .form-container h2 {
+      color: var(--success-color);
+      margin-top: 0;
+      border-bottom: 2px solid rgba(40, 167, 69, 0.3);
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .form-field {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    #investmentForm label {
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+      font-size: 0.9em;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    #investmentForm input[type="text"],
+    #investmentForm input[type="number"],
+    #investmentForm select {
+      padding: 12px 15px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 1em;
+      transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+      background: white;
+    }
+    
+    #investmentForm input:focus,
+    #investmentForm select:focus {
+      outline: none;
+      border-color: var(--success-color);
+      box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+    }
+    
+    #investmentForm button[type="submit"] {
+      background: linear-gradient(135deg, var(--success-color) 0%, #1e7e34 100%);
+      color: white;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1.1em;
+      font-weight: 600;
+      transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+      width: 100%;
+      margin-top: 10px;
+    }
+    
+    #investmentForm button[type="submit"]:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    }
+    
+    #investmentForm button[type="submit"]:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    
+    #investmentForm button[type="submit"]:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    
+    /* Mensagens */
+    #formMessage {
+      margin-top: 20px;
+      padding: 15px 20px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 500;
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .message-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 2px solid #c3e6cb;
+    }
+    
+    .message-error, .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 2px solid #f5c6cb;
+    }
+    
+    .message-loading {
+      background-color: #cce5ff;
+      color: #004085;
+      border: 2px solid #b8daff;
+    }
+    
+    .loading {
+      text-align: center;
+      font-size: 1.2em;
+      color: var(--primary-color);
+      margin: 50px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Stats adicionais */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 25px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    
+    .stat-item {
+      text-align: center;
+      padding: 10px;
+    }
+    
+    .stat-label {
+      font-size: 0.85em;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    
+    .stat-value {
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    /* Botões de ação */
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9em;
+      font-weight: 600;
+      transition: all var(--transition-speed);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background-color: #0056b3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px;
+      }
+      
+      h1 {
+        font-size: 1.5em;
+      }
+      
+      .summary-card {
+        grid-template-columns: 1fr;
+      }
+      
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      th, td {
+        padding: 10px;
+        font-size: 0.9em;
+      }
+    }
+    
+    /* Tooltips */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+    }
+    
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 200px;
+      background-color: #555;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -100px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.85em;
+    }
+    
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      💰 Dashboard Financeiro Externo
+    </h1>
+    
+    <div class="summary-card">
+      <div class="card">
+        <div class="card-icon">💵</div>
+        <div class="card-title">Valor Total Investido</div>
+        <div id="totalInvestido" class="card-value">R$ 0,00</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📈</div>
+        <div class="card-title">Renda Mensal Total</div>
+        <div id="rendaMensal" class="card-value">R$ 0,00</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🏦</div>
+        <div class="card-title">Patrimônio Líquido</div>
+        <div id="patrimonio" class="card-value">R$ 0,00</div>
+      </div>
+    </div>
+    
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-label">Rentabilidade Total</div>
+        <div id="rentabilidadeTotal" class="stat-value">0%</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Yield Médio Mensal</div>
+        <div id="yieldMedio" class="stat-value">0%</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Total de Ativos</div>
+        <div id="totalAtivos" class="stat-value">0</div>
+      </div>
+    </div>
+    
+    <div class="form-container">
+      <h2>➕ Adicionar Novo Registro</h2>
+      <form id="investmentForm">
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="ativo">
+              <span>🏷️ Ativo/Fonte de Renda:</span>
+            </label>
+            <input type="text" id="ativo" name="Ativo" placeholder="Ex: Tesouro Direto, Ações, FII..." required>
+          </div>
+          
+          <div class="form-field">
+            <label for="valorInvestido">
+              <span>💰 Valor Investido:</span>
+            </label>
+            <input type="number" id="valorInvestido" name="Valor Investido" step="0.01" min="0" value="0" placeholder="0.00" required>
+          </div>
+          
+          <div class="form-field">
+            <label for="rendaRecorrente">
+              <span>📊 Renda Mensal:</span>
+            </label>
+            <input type="number" id="rendaRecorrente" name="Renda Recorrente Mensal" step="0.01" min="0" value="0" placeholder="0.00" required>
+          </div>
+          
+          <div class="form-field">
+            <label for="valorAtual">
+              <span>💎 Valor Atual:</span>
+            </label>
+            <input type="number" id="valorAtual" name="Valor Atual" step="0.01" min="0" value="0" placeholder="0.00" required>
+          </div>
+        </div>
+        
+        <button type="submit">
+          <span>✅ Adicionar Registro</span>
+        </button>
+      </form>
+      <div id="formMessage" class="hidden"></div>
+    </div>
+
+    <h2>📋 Detalhamento dos Ativos</h2>
+    
+    <div class="action-buttons">
+      <button class="btn btn-primary" onclick="refreshData()">
+        <span>🔄</span>
+        <span>Atualizar Dados</span>
+      </button>
+    </div>
+    
+    <div id="content">
+      <div class="loading">
+        <div class="spinner"></div>
+        <div>Carregando dados da planilha...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- JAVASCRIPT PARA COMUNICAÇÃO EXTERNA ---
+    
+    // ** IMPORTANTE: MUDE A URL AQUI PARA A SUA URL DE EXECUÇÃO RECENTEMENTE ATUALIZADA **
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxSvhTjoYoVlNRTSimodbdpY70FIQz0Jow6TDCf5N9_z0KoJW8vRGcgzOz-JVttRtZuwg/exec';
+    
+    // Estado da aplicação (O resto do código mantém a mesma estrutura)
+    let currentData = {
+      investments: [],
+      headers: [],
+      summary: {}
+    };
+    
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', function() {
+      loadInitialData();
+      setupEventListeners();
+    });
+    
+    function setupEventListeners() {
+      document.getElementById('investmentForm').addEventListener('submit', handleFormSubmit);
+      
+      // Auto-formatação de inputs numéricos
+      const numberInputs = document.querySelectorAll('input[type="number"]');
+      numberInputs.forEach(input => {
+        input.addEventListener('blur', function() {
+          if (this.value) {
+            // Garante 2 casas decimais e substitui vírgula por ponto (padrão)
+            let formattedValue = parseFloat(this.value).toFixed(2);
+            this.value = formattedValue;
+          }
+        });
+      });
+    }
+    
+    // -------------------------------------------------------------
+    // FUNÇÃO PRINCIPAL DE COMUNICAÇÃO COM O APPS SCRIPT (API)
+    // -------------------------------------------------------------
+
+    /**
+     * Envia requisição POST para o Apps Script com a ação e o payload.
+     */
+    async function callAppsScript(action, payload = {}) {
+        try {
+            const response = await fetch(WEB_APP_URL, {
+                method: 'POST',
+                mode: 'cors', 
+                headers: {
+                    // O Apps Script espera 'text/plain' para requisições POST externas
+                    'Content-Type': 'text/plain;charset=utf-8' 
+                },
+                body: JSON.stringify({
+                    action: action,
+                    payload: payload
+                })
+            });
+
+            // Se o status da resposta for OK (200), lemos o conteúdo JSON
+            if (response.ok) {
+              const text = await response.text();
+              return JSON.parse(text);
+            } else {
+              // Lidar com erros HTTP (404, 500, etc.)
+              const errorText = await response.text();
+              throw new Error(`Erro HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+            }
+
+        } catch (error) {
+            console.error("Erro na comunicação com Apps Script:", error);
+            // Rejeita a promessa para ser capturada pelo .catch() do loadInitialData
+            throw new Error("Falha na comunicação: " + error.message);
+        }
+    }
+
+
+    // -------------------------------------------------------------
+    // FUNÇÕES DE CARREGAMENTO E ATUALIZAÇÃO
+    // -------------------------------------------------------------
+
+    function loadInitialData() {
+        callAppsScript('GET_DATA')
+            .then(displayData)
+            .catch(displayError);
+    }
+    
+    function refreshData() {
+      showLoadingState();
+      loadInitialData();
+    }
+    
+    function showLoadingState() {
+      const contentDiv = document.getElementById('content');
+      contentDiv.innerHTML = `
+        <div class="loading">
+          <div class="spinner"></div>
+          <div>Atualizando dados...</div>
+        </div>
+      `;
+    }
+    
+    // -------------------------------------------------------------
+    // FORMATAÇÃO E CÁLCULOS (Manter as funções originais)
+    // -------------------------------------------------------------
+    
+    function formatCurrency(value) {
+      if (value === null || value === undefined || isNaN(value)) {
+        return 'R$ 0,00';
+      }
+      const numValue = Number(value);
+      return numValue.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 2
+      });
+    }
+    
+    function formatPercentage(value) {
+      if (value === null || value === undefined || isNaN(value)) {
+        return '0%';
+      }
+      // Garante que o valor exibido na rentabilidade use a cor correta
+      const color = Number(value) >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+      return `<span style="color: ${color};">${Number(value).toFixed(2)}%</span>`;
+    }
+    
+    function calculateSummary(data) {
+      let totalInvestido = 0;
+      let rendaMensal = 0;
+      let patrimonio = 0;
+      
+      data.forEach(item => {
+        const invested = Number(item['Valor Investido']) || 0;
+        const currentValue = Number(item['Valor Atual']) || invested;
+        const monthlyIncome = Number(item['Renda Recorrente Mensal']) || 0;
+        
+        totalInvestido += invested;
+        rendaMensal += monthlyIncome;
+        patrimonio += currentValue;
+      });
+      
+      const rentabilidade = totalInvestido > 0 
+        ? ((patrimonio - totalInvestido) / totalInvestido) * 100 
+        : 0;
+      
+      const yieldMedio = patrimonio > 0 
+        ? (rendaMensal / patrimonio) * 100 
+        : 0;
+      
+      return {
+        totalInvestido,
+        rendaMensal,
+        patrimonio,
+        rentabilidade,
+        yieldMedio,
+        totalAtivos: data.length
+      };
+    }
+    
+    // -------------------------------------------------------------
+    // DISPLAY DE DADOS
+    // -------------------------------------------------------------
+    
+    function displayData(response) {
+      // Se a resposta vier com sucesso: false, trata como erro
+      if (!response.success) {
+        displayError({ message: response.message || "Erro desconhecido ao carregar dados." });
+        return;
+      }
+      
+      currentData.investments = response.data;
+      currentData.headers = response.headers;
+      currentData.summary = calculateSummary(response.data);
+      
+      updateSummaryCards();
+      updateStatsRow();
+      renderTable();
+    }
+    
+    function updateSummaryCards() {
+      const summary = currentData.summary;
+      
+      document.getElementById('totalInvestido').textContent = formatCurrency(summary.totalInvestido);
+      document.getElementById('rendaMensal').textContent = formatCurrency(summary.rendaMensal);
+      document.getElementById('patrimonio').textContent = formatCurrency(summary.patrimonio);
+    }
+    
+    function updateStatsRow() {
+      const summary = currentData.summary;
+      
+      document.getElementById('rentabilidadeTotal').innerHTML = formatPercentage(summary.rentabilidade);
+      document.getElementById('yieldMedio').textContent = formatPercentage(summary.yieldMedio).replace(/<[^>]*>?/gm, ''); // Remove span de cor, mantendo só o texto
+      document.getElementById('totalAtivos').textContent = summary.totalAtivos;
+    }
+    
+    function renderTable() {
+      const contentDiv = document.getElementById('content');
+      const data = currentData.investments;
+      const headers = currentData.headers;
+      
+      if (data.length === 0) {
+        contentDiv.innerHTML = `
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="${headers.length}" style="text-align:center; padding: 40px;">
+                    📊 Nenhum registro de investimento encontrado. Adicione seu primeiro registro acima!
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+      
+      let htmlTable = `
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+            </thead>
+            <tbody>
+      `;
+      
+      data.forEach(item => {
+        htmlTable += '<tr>';
+        headers.forEach(header => {
+          let value = item[header];
+          
+          if (header.includes('Valor') || header.includes('Renda') || header.includes('Preço')) {
+            value = formatCurrency(value);
+          }
+          
+          htmlTable += `<td>${value || '-'}</td>`;
+        });
+        htmlTable += '</tr>';
+      });
+      
+      htmlTable += '</tbody></table></div>';
+      contentDiv.innerHTML = htmlTable;
+    }
+    
+    function displayError(error) {
+      const contentDiv = document.getElementById('content');
+      contentDiv.innerHTML = `
+        <div class="error">
+          ❌ Ocorreu um erro ao carregar os dados: ${error.message || error}
+        </div>
+      `;
+      
+      document.getElementById('totalInvestido').textContent = 'R$ 0,00';
+      document.getElementById('rendaMensal').textContent = 'R$ 0,00';
+      document.getElementById('patrimonio').textContent = 'R$ 0,00';
+    }
+    
+    // -------------------------------------------------------------
+    // FORMULÁRIO DE ESCRITA
+    // -------------------------------------------------------------
+    
+    async function handleFormSubmit(event) {
+      event.preventDefault();
+      
+      const form = event.target;
+      const formData = {};
+      
+      Array.from(form.elements).forEach(element => {
+        if (element.name) {
+          // Usa o valor limpo
+          let value = element.value;
+          
+          // Se for campo numérico, remove formatação de milhar e usa ponto decimal
+          if (element.type === 'number') {
+            value = value.replace(/\./g, '').replace(',', '.');
+          }
+          formData[element.name] = value;
+        }
+      });
+      
+      if (!validateFormData(formData)) {
+        return;
+      }
+      
+      const submitButton = form.querySelector('button[type="submit"]');
+      const messageDiv = document.getElementById('formMessage');
+      
+      submitButton.disabled = true;
+      messageDiv.classList.remove('hidden', 'message-success', 'message-error');
+      messageDiv.className = 'message-loading';
+      messageDiv.textContent = '⏳ Adicionando registro na planilha...';
+      
+      // CHAMA O APPS SCRIPT COM AÇÃO 'ADD_RECORD'
+      const response = await callAppsScript('ADD_RECORD', formData);
+
+      submitButton.disabled = false;
+      
+      if (response.success) {
+        messageDiv.className = 'message-success';
+        messageDiv.textContent = '✅ ' + response.message;
+        form.reset();
+        
+        // Recarrega os dados após sucesso
+        setTimeout(() => {
+          loadInitialData();
+        }, 500);
+        
+        setTimeout(() => {
+          messageDiv.classList.add('hidden');
+        }, 5000);
+      } else {
+        messageDiv.className = 'message-error';
+        messageDiv.textContent = '❌ ' + (response.message || 'Erro desconhecido ao adicionar registro.');
+      }
+    }
+    
+    function validateFormData(data) {
+      const messageDiv = document.getElementById('formMessage');
+      
+      if (!data['Ativo'] || data['Ativo'].trim() === '') {
+        messageDiv.classList.remove('hidden');
+        messageDiv.className = 'message-error';
+        messageDiv.textContent = '❌ O nome do ativo é obrigatório!';
+        return false;
+      }
+      
+      return true;
+    }
+</script>
+</body>
+</html>
